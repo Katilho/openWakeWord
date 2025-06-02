@@ -1,22 +1,22 @@
 ## Configuration file to be used with `train.py` to create custom wake word/phrase models
 
 # The name of the model (will be used when creating directoires and when saving the final .onnx and .tflite files)
-model_name: "my_model"
+model_name: "clarisse"
 
 # The target word/phrase to be detected by the model. Adding multiple unique words/phrases will
 # still only train a binary model detection model, but it will activate on any one of the provided words/phrases.
 target_phrase:
-  - "hey jarvis"
+  - "Clarisse"
 
 # Specific phrases that you do *not* want the model to activate on, outside of those generated automatically via phoneme overlap
 # This can be a good way to reduce false positives if you notice that, in practice, certain words or phrases are problematic
 custom_negative_phrases: []
 
 # The total number of positive samples to generate for training (minimum of 20,000 recommended, often 100,000+ is best)
-n_samples: 10000
+n_samples: 50000
 
 # The total number of positive samples to generate for validation and early stopping of model training
-n_samples_val: 2000
+n_samples_val: 5000
 
 # The batch size to use with Piper TTS when generating synthetic training data
 tts_batch_size: 50
@@ -30,7 +30,7 @@ piper_sample_generator_path: "./piper-sample-generator"
 
 # The output directory for the generated synthetic clips, openwakeword features, and trained models
 # Sub-directories will be automatically created for train and test clips for both positive and negative examples
-output_dir: "./my_custom_model"
+output_dir: "./final_result"
 
 # The directories containing Room Impulse Response recordings
 rir_paths:
