@@ -823,6 +823,31 @@ if __name__ == "__main__":
     # imports Piper for synthetic sample generation
     sys.path.insert(0, os.path.abspath(config["piper_sample_generator_path"]))
     from generate_samples import generate_samples
+    
+    from openwakeword.piper_gen import PiperGenerator 
+
+    models = [
+        "pt_PT-tugão-medium",
+        "es_ES-carlfm-x_low",
+        "es_ES-davefx-medium",
+        "es_ES-sharvard-medium",
+        "es_MX-ald-medium",
+        "es_MX-claude-high",
+        "it_IT-paola-medium",
+        "pt_BR-cadu-medium",
+        "pt_BR-faber-medium",
+        "pt_BR-jeff-medium",
+        "ro_RO-mihai-medium",
+        # "sl_SI-artur-medium",
+    ]
+
+    extra_models = [
+        # "models/pt_PT-rita.onnx",
+        "models/pt_PT-tugão-medium.onnx",
+    ]
+
+    # Initialize PiperGenerator
+    piper_generator = PiperGenerator(models=models, extra_models_paths=extra_models)
 
     # Define output locations
     config["output_dir"] = os.path.abspath(config["output_dir"])
@@ -868,19 +893,25 @@ if __name__ == "__main__":
             os.mkdir(positive_train_output_dir)
         n_current_samples = len(os.listdir(positive_train_output_dir))
         if n_current_samples <= 0.95 * config["n_samples"]:
-            generate_samples(
-                text=config["target_phrase"],
+            # generate_samples(
+            #     text=config["target_phrase"],
+            #     max_samples=config["n_samples"] - n_current_samples,
+            #     batch_size=config["tts_batch_size"],
+            #     noise_scales=[0.98],
+            #     noise_scale_ws=[0.98],
+            #     length_scales=[0.75, 1.0, 1.25],
+            #     output_dir=positive_train_output_dir,
+            #     auto_reduce_batch_size=True,
+            #     file_names=[
+            #         uuid.uuid4().hex + ".wav" for i in range(config["n_samples"])
+            #     ],
+            # )
+            piper_generator.generate_samples_piper(
+                texts=config["target_phrase"],
                 max_samples=config["n_samples"] - n_current_samples,
-                batch_size=config["tts_batch_size"],
-                noise_scales=[0.98],
-                noise_scale_ws=[0.98],
-                length_scales=[0.75, 1.0, 1.25],
                 output_dir=positive_train_output_dir,
-                auto_reduce_batch_size=True,
-                file_names=[
-                    uuid.uuid4().hex + ".wav" for i in range(config["n_samples"])
-                ],
             )
+                
             torch.cuda.empty_cache()
         else:
             logging.warning(
@@ -893,15 +924,20 @@ if __name__ == "__main__":
             os.mkdir(positive_test_output_dir)
         n_current_samples = len(os.listdir(positive_test_output_dir))
         if n_current_samples <= 0.95 * config["n_samples_val"]:
-            generate_samples(
-                text=config["target_phrase"],
+            # generate_samples(
+            #     text=config["target_phrase"],
+            #     max_samples=config["n_samples_val"] - n_current_samples,
+            #     batch_size=config["tts_batch_size"],
+            #     noise_scales=[1.0],
+            #     noise_scale_ws=[1.0],
+            #     length_scales=[0.75, 1.0, 1.25],
+            #     output_dir=positive_test_output_dir,
+            #     auto_reduce_batch_size=True,
+            # )
+            piper_generator.generate_samples_piper(
+                texts=config["target_phrase"],
                 max_samples=config["n_samples_val"] - n_current_samples,
-                batch_size=config["tts_batch_size"],
-                noise_scales=[1.0],
-                noise_scale_ws=[1.0],
-                length_scales=[0.75, 1.0, 1.25],
                 output_dir=positive_test_output_dir,
-                auto_reduce_batch_size=True,
             )
             torch.cuda.empty_cache()
         else:
