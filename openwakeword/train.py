@@ -843,7 +843,7 @@ if __name__ == "__main__":
 
     extra_models = [
         # "models/pt_PT-rita.onnx",
-        "models/pt_PT-tugão-medium.onnx",
+        # "models/pt_PT-tugão-medium.onnx",
     ]
 
     # Initialize PiperGenerator

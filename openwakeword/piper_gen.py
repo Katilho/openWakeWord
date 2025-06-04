@@ -29,26 +29,15 @@ class PiperGenerator:
     ):
         self.models: List[str] = models
 
-        self.voices: List[PiperVoice] = self.ensure_voices_exist_and_download(
-            self.models
-        )
+        self.voices: List[PiperVoice] = self.validate_and_load_voices(self.models)
 
         # Carregar mais vozes extra a partir dos próprios modelos.
-        for extra_model in extra_models_paths:
-            voice = PiperVoice.load(
-                model_path=extra_model,
-                config_path=extra_model + ".json",
-                use_cuda=torch.cuda.is_available(),
-            )
-
-            self.voices.append(voice)
+        if extra_models_paths:
+            self.voices.extend(self.validate_and_load_extra_models(extra_models_paths))
 
     def download_tugao_voice(self):
         base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/pt_PT-tugão-medium"
-        files_to_download = [
-            f"{base_url}.onnx",
-            f"{base_url}.onnx.json"
-        ]
+        files_to_download = [f"{base_url}.onnx", f"{base_url}.onnx.json"]
 
         # Destination directory
         destination_dir = "models"
@@ -75,7 +64,7 @@ class PiperGenerator:
 
             print(f"✓ Successfully downloaded {filename}")
 
-    def ensure_voices_exist_and_download(self, models: List[str]) -> List[PiperVoice]:
+    def validate_and_load_voices(self, models: List[str]) -> List[PiperVoice]:
         # Download manual do modelo de voz do tugao para ultrapassar problemas de encodign da funcao de download da libraria.
         self.download_tugao_voice()
 
@@ -111,6 +100,31 @@ class PiperGenerator:
 
         return loaded_voices
 
+    def validate_and_load_extra_models(
+        self, extra_models_paths: List[str]
+    ) -> List[PiperVoice]:
+        voices = []
+
+        for extra_model in extra_models_paths:
+            try:
+                # Check if model path exists
+                if not os.path.exists(extra_model):
+                    print(f"⚠️ Model path does not exist: {extra_model}")
+                    continue
+
+                voice = PiperVoice.load(
+                    model_path=extra_model,
+                    config_path=extra_model + ".json",
+                    use_cuda=torch.cuda.is_available(),
+                )
+                voices.append(voice)
+                print(f"✓ Loaded extra model: {extra_model}")
+
+            except Exception as e:
+                print(f"⚠️ Error loading extra model '{extra_model}': {e}")
+
+        return voices
+
     def generate_samples_piper(
         self,
         texts: List[str],
@@ -129,7 +143,7 @@ class PiperGenerator:
 
             # Controls the duration of the generated speech (larger = slower/longer)
             length_scale = length_scale or round(random.triangular(0.5, 2, 1.0), 3)
-            
+
             # Controls the amount of randomness/noise in generation (affects prosody)
             noise_scale = noise_scale or round(random.triangular(0.3, 1.2, 0.667), 3)
 
