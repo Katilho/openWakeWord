@@ -20,6 +20,7 @@ from piper.download import (
     get_voices,
 )
 from piper.voice import PiperVoice
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -139,7 +140,7 @@ class PiperGenerator:
         original_sample_rate = 22050
         resample_rate = 16000
 
-        for i in range(max_samples):
+        for i in tqdm(range(max_samples), desc="Generating samples"):
             voice = random.choice(self.voices)
             text = random.choice(texts)
 
