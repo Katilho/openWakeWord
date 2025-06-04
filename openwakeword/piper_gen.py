@@ -13,7 +13,8 @@ import numpy as np
 import requests
 import soundfile as sf
 import torch
-from IPython.display import display, update_display
+
+# from IPython.display import display, update_display
 from piper.download import (
     VoiceNotFoundError,
     ensure_voice_exists,
@@ -164,18 +165,18 @@ class PiperGenerator:
         resample_rate = 16000
 
         # Initialize progress display
-        handle = display("Starting sample generation...", display_id=True)
+        # my_display = display("Starting sample generation...", display_id=True)
 
         # for i in tqdm(range(max_samples)):
         for i in range(max_samples):
             voice = random.choice(self.voices)
             text = random.choice(texts)
 
-            # Update progress display
-            update_display(
-                f"Sample {i + 1}/{max_samples} for text: {text}",
-                display_id=handle.display_id,
-            )
+            # # Update progress display
+            # update_display(
+            #     f"Sample {i + 1}/{max_samples} for text: {text}",
+            #     display_id=my_display.display_id,
+            # )
 
             # Controls the duration of the generated speech (larger = slower/longer)
             current_length_scale = length_scale or round(
