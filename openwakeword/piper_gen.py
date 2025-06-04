@@ -1,4 +1,5 @@
 import argparse
+import io
 import logging
 import os
 import random
@@ -6,13 +7,13 @@ import time
 import wave
 from pathlib import Path
 from typing import List, Optional
-import io
 
-import requests
-import torch
-import soundfile as sf
 import librosa
 import numpy as np
+import requests
+import soundfile as sf
+import torch
+from IPython.display import display, update_display
 from piper.download import (
     VoiceNotFoundError,
     ensure_voice_exists,
@@ -20,8 +21,6 @@ from piper.download import (
     get_voices,
 )
 from piper.voice import PiperVoice
-from tqdm import tqdm
-
 
 # This will reduce most library logs
 logging.basicConfig(level=logging.WARNING)  # or logging.ERROR for even less output
@@ -164,10 +163,19 @@ class PiperGenerator:
         original_sample_rate = 22050
         resample_rate = 16000
 
+        # Initialize progress display
+        handle = display("Starting sample generation...", display_id=True)
+
         # for i in tqdm(range(max_samples)):
         for i in range(max_samples):
             voice = random.choice(self.voices)
             text = random.choice(texts)
+
+            # Update progress display
+            update_display(
+                f"Sample {i + 1}/{max_samples} for text: {text}",
+                display_id=handle.display_id,
+            )
 
             # Controls the duration of the generated speech (larger = slower/longer)
             current_length_scale = length_scale or round(
@@ -182,7 +190,6 @@ class PiperGenerator:
             # Controls pitch/energy variation (often for expressive TTS)
             current_noise_w = noise_w or round(random.triangular(0.3, 1.5, 0.8), 3)
 
-            logger.info(f"Generating sample {i + 1}/{max_samples} for text: {text}")
             synthesize_args = {
                 "length_scale": current_length_scale,
                 "noise_scale": current_noise_scale,
