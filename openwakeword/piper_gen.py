@@ -164,7 +164,8 @@ class PiperGenerator:
         original_sample_rate = 22050
         resample_rate = 16000
 
-        for i in tqdm(range(max_samples), desc="Generating samples"):
+        # for i in tqdm(range(max_samples)):
+        for i in range(max_samples):
             voice = random.choice(self.voices)
             text = random.choice(texts)
 
