@@ -14,7 +14,6 @@ import requests
 import soundfile as sf
 import torch
 
-# from IPython.display import display, update_display
 from piper.download import (
     VoiceNotFoundError,
     ensure_voice_exists,
@@ -31,23 +30,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Option 2: More granular control - silence specific noisy libraries
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("torch").setLevel(logging.WARNING)
 logging.getLogger("librosa").setLevel(logging.WARNING)
-logging.getLogger("soundfile").setLevel(logging.WARNING)
+logging.getLogger("piper").setLevel(
+    logging.WARNING
+) 
 
-# Option 3: Only show logs from your script
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Add a handler specifically for your logger if needed
-handler = logging.StreamHandler()
-formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.propagate = False  # Prevent duplicate messages
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
 
 
 class PiperGenerator:

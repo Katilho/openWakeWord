@@ -822,6 +822,7 @@ if __name__ == "__main__":
 
     # Setup our personal PiperGenerator
     from piper_gen import PiperGenerator
+
     # imports Piper for synthetic sample generation
     sys.path.insert(0, os.path.abspath(config["piper_sample_generator_path"]))
     from generate_samples import generate_samples
@@ -864,7 +865,6 @@ if __name__ == "__main__":
         )
 
     if args.generate_clips is True:
-
         models = [
             "pt_PT-tugão-medium",
             "es_ES-carlfm-x_low",
