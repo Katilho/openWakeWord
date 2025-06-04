@@ -823,31 +823,6 @@ if __name__ == "__main__":
     # imports Piper for synthetic sample generation
     sys.path.insert(0, os.path.abspath(config["piper_sample_generator_path"]))
     from generate_samples import generate_samples
-    
-    from openwakeword.piper_gen import PiperGenerator 
-
-    models = [
-        "pt_PT-tugão-medium",
-        "es_ES-carlfm-x_low",
-        "es_ES-davefx-medium",
-        "es_ES-sharvard-medium",
-        "es_MX-ald-medium",
-        "es_MX-claude-high",
-        "it_IT-paola-medium",
-        "pt_BR-cadu-medium",
-        "pt_BR-faber-medium",
-        "pt_BR-jeff-medium",
-        "ro_RO-mihai-medium",
-        # "sl_SI-artur-medium",
-    ]
-
-    extra_models = [
-        # "models/pt_PT-rita.onnx",
-        # "models/pt_PT-tugão-medium.onnx",
-    ]
-
-    # Initialize PiperGenerator
-    piper_generator = PiperGenerator(models=models, extra_models_paths=extra_models)
 
     # Define output locations
     config["output_dir"] = os.path.abspath(config["output_dir"])
@@ -887,6 +862,32 @@ if __name__ == "__main__":
         )
 
     if args.generate_clips is True:
+        # Setup our personal PiperGenerator
+        from openwakeword.piper_gen import PiperGenerator
+
+        models = [
+            "pt_PT-tugão-medium",
+            "es_ES-carlfm-x_low",
+            "es_ES-davefx-medium",
+            "es_ES-sharvard-medium",
+            "es_MX-ald-medium",
+            "es_MX-claude-high",
+            "it_IT-paola-medium",
+            "pt_BR-cadu-medium",
+            "pt_BR-faber-medium",
+            "pt_BR-jeff-medium",
+            "ro_RO-mihai-medium",
+            # "sl_SI-artur-medium",
+        ]
+
+        extra_models = [
+            # "models/pt_PT-rita.onnx",
+            # "models/pt_PT-tugão-medium.onnx",
+        ]
+
+        # Initialize PiperGenerator
+        piper_generator = PiperGenerator(models=models, extra_models_paths=extra_models)
+
         # Generate positive clips for training
         logging.info("#" * 50 + "\nGenerating positive clips for training\n" + "#" * 50)
         if not os.path.exists(positive_train_output_dir):
@@ -911,7 +912,7 @@ if __name__ == "__main__":
                 max_samples=config["n_samples"] - n_current_samples,
                 output_dir=positive_train_output_dir,
             )
-                
+
             torch.cuda.empty_cache()
         else:
             logging.warning(
