@@ -191,7 +191,6 @@ class PiperGenerator:
             )
 
             sf.write(str(wav_path), resampled_audio, resample_rate, subtype="PCM_16")
-            logger.info(f"Saved resampled audio ({resample_rate}Hz) to {wav_path}")
 
 
 def main():
