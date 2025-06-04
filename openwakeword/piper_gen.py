@@ -22,8 +22,32 @@ from piper.download import (
 from piper.voice import PiperVoice
 from tqdm import tqdm
 
-logging.basicConfig(level=logging.INFO)
+
+# This will reduce most library logs
+logging.basicConfig(level=logging.WARNING)  # or logging.ERROR for even less output
+
+# Keep your specific logger at INFO level if you want to see your own messages
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Option 2: More granular control - silence specific noisy libraries
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("torch").setLevel(logging.WARNING)
+logging.getLogger("librosa").setLevel(logging.WARNING)
+logging.getLogger("soundfile").setLevel(logging.WARNING)
+
+# Option 3: Only show logs from your script
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Add a handler specifically for your logger if needed
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.propagate = False  # Prevent duplicate messages
 
 
 class PiperGenerator:
