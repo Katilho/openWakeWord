@@ -44,31 +44,36 @@ class PiperGenerator:
             self.voices.append(voice)
 
     def download_tugao_voice(self):
-        url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/pt_PT-tugão-medium.onnx"
+        base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/pt_PT-tugão-medium"
+        files_to_download = [
+            f"{base_url}.onnx",
+            f"{base_url}.onnx.json"
+        ]
 
-        filename = url.split("/")[-1]
-
-        # Destination directory and file path
+        # Destination directory
         destination_dir = "models"
         Path(destination_dir).mkdir(parents=True, exist_ok=True)
-        file_path = os.path.join(destination_dir, filename)
 
-        # Check if file already exists
-        if os.path.exists(file_path):
-            print(f"✓ {filename} already exists, skipping download")
-            return
+        for url in files_to_download:
+            filename = url.split("/")[-1]
+            file_path = os.path.join(destination_dir, filename)
 
-        print(f"Downloading from: {url}")
+            # Check if file already exists
+            if os.path.exists(file_path):
+                print(f"✓ {filename} already exists, skipping download")
+                continue
 
-        # Download and save the file
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an error if download fails
+            print(f"Downloading from: {url}")
 
-        print(f"Saving to: {file_path}")
-        with open(file_path, "wb") as f:
-            f.write(response.content)
+            # Download and save the file
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an error if download fails
 
-        print(f"✓ Successfully downloaded {filename}")
+            print(f"Saving to: {file_path}")
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+
+            print(f"✓ Successfully downloaded {filename}")
 
     def ensure_voices_exist_and_download(self, models: List[str]) -> List[PiperVoice]:
         # Download manual do modelo de voz do tugao para ultrapassar problemas de encodign da funcao de download da libraria.
