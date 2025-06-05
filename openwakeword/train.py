@@ -1268,8 +1268,9 @@ if __name__ == "__main__":
             output_dir=config["output_dir"],
         )
 
+        #! This doesn't work right (broken in python 3.11, default in Colab as of January 2025) there is a shell command to do this in the notebook
         # Convert the model from onnx to tflite format
-        convert_onnx_to_tflite(
-            os.path.join(config["output_dir"], config["model_name"] + ".onnx"),
-            os.path.join(config["output_dir"], config["model_name"] + ".tflite"),
-        )
+        # convert_onnx_to_tflite(
+        #     os.path.join(config["output_dir"], config["model_name"] + ".onnx"),
+        #     os.path.join(config["output_dir"], config["model_name"] + ".tflite"),
+        # )
