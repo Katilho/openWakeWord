@@ -13,7 +13,6 @@ import numpy as np
 import requests
 import soundfile as sf
 import torch
-
 from piper.download import (
     VoiceNotFoundError,
     ensure_voice_exists,
@@ -32,9 +31,7 @@ logger.setLevel(logging.INFO)
 # Option 2: More granular control - silence specific noisy libraries
 logging.getLogger("torch").setLevel(logging.WARNING)
 logging.getLogger("librosa").setLevel(logging.WARNING)
-logging.getLogger("piper").setLevel(
-    logging.WARNING
-) 
+logging.getLogger("piper").setLevel(logging.WARNING)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
 
@@ -84,7 +81,7 @@ class PiperGenerator:
                 print(f"✓ {filename} already exists, skipping download")
 
     def ensure_voices_exist_and_download(self, models: List[str]) -> List[PiperVoice]:
-        # Download manual do modelo de voz do tugao para ultrapassar problemas de encodign da funcao de download da libraria.
+        # Download manual do modelo de voz do tugao para ultrapassar problemas de encoding da funcao de download da libraria.
         self.download_tugao_voice()
 
         download_dir = Path("models")
@@ -164,17 +161,18 @@ class PiperGenerator:
 
             # Controls the duration of the generated speech (larger = slower/longer)
             current_length_scale = length_scale or round(
-                random.triangular(0.5, 2, 1.0), 3
+                random.triangular(0.6, 1.8, 1.0), 3
             )
 
             # Controls the amount of randomness/noise in generation (affects prosody)
             current_noise_scale = noise_scale or round(
-                random.triangular(0.3, 1.2, 0.667), 3
+                random.triangular(0.4, 1, 0.667), 3
             )
 
             # Controls pitch/energy variation (often for expressive TTS)
-            current_noise_w = noise_w or round(random.triangular(0.3, 1.5, 0.8), 3)
+            current_noise_w = noise_w or round(random.triangular(0.5, 1.2, 0.8), 3)
 
+            # logger.info(f"Generating sample {i + 1}/{max_samples} for text: {text}")
             synthesize_args = {
                 "length_scale": current_length_scale,
                 "noise_scale": current_noise_scale,
@@ -208,6 +206,7 @@ class PiperGenerator:
             )
 
             sf.write(str(wav_path), resampled_audio, resample_rate, subtype="PCM_16")
+            # logger.info(f"Saved resampled audio ({resample_rate}Hz) to {wav_path}")
 
 
 def main():
@@ -230,23 +229,18 @@ def main():
 
     args = parser.parse_args()
 
+    # More info about voices in: https://piper.ttstool.com/
     args.models = [
         "pt_PT-tugão-medium",
-        "es_ES-carlfm-x_low",
-        "es_ES-davefx-medium",
-        "es_ES-sharvard-medium",
-        "es_MX-ald-medium",
-        "es_MX-claude-high",
-        "it_IT-paola-medium",
-        "pt_BR-cadu-medium",
-        "pt_BR-faber-medium",
-        "pt_BR-jeff-medium",
-        "ro_RO-mihai-medium",
-        # "sl_SI-artur-medium",
+        # "es_MX-claude-high",
+        # "it_IT-paola-medium",
+        # "pt_BR-cadu-medium",
+        # "pt_BR-faber-medium",
+        # "ro_RO-mihai-medium",
     ]
 
     extra_models = [
-        # "models/pt_PT-rita.onnx",
+        "models/pt_PT-rita.onnx",
         # "models/pt_PT-tugão-medium.onnx",
     ]
 
