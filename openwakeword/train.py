@@ -867,21 +867,20 @@ if __name__ == "__main__":
     if args.generate_clips is True:
         models = [
             "pt_PT-tugão-medium",
-            "es_ES-carlfm-x_low",
-            "es_ES-davefx-medium",
-            "es_ES-sharvard-medium",
-            "es_MX-ald-medium",
-            "es_MX-claude-high",
-            "it_IT-paola-medium",
-            "pt_BR-cadu-medium",
-            "pt_BR-faber-medium",
-            "pt_BR-jeff-medium",
-            "ro_RO-mihai-medium",
+            # "es_ES-davefx-medium",
+            # "es_ES-sharvard-medium",
+            # "es_MX-ald-medium",
+            # "es_MX-claude-high",
+            # "it_IT-paola-medium",
+            # "pt_BR-cadu-medium",
+            # "pt_BR-faber-medium",
+            # "pt_BR-jeff-medium",
+            # "ro_RO-mihai-medium",
             # "sl_SI-artur-medium",
         ]
 
         extra_models = [
-            # "models/pt_PT-rita.onnx",
+            "models/pt_PT-rita.onnx",
             # "models/pt_PT-tugão-medium.onnx",
         ]
 
