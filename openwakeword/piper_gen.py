@@ -53,10 +53,11 @@ class PiperGenerator:
 
         # Carregar mais vozes extra a partir dos próprios modelos.
         for extra_model in extra_models_paths:
+            print(f"Loading extra model from: {extra_model}")
             voice = PiperVoice.load(
-                model_path=extra_model,
-                config_path=Path(f"{extra_model}.json"),
-                use_cuda=torch.cuda.is_available(),
+            model_path=extra_model,
+            config_path=Path(f"{extra_model}.json"),
+            use_cuda=torch.cuda.is_available(),
             )
 
             self.voices.append(voice)
