@@ -39,13 +39,30 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING message
 class PiperGenerator:
     MODELS_DIR = Path("models")  # Define models directory as a class attribute
 
+    # More info about voices in: https://piper.ttstool.com/
+    DEFAULT_MODELS = [
+        "pt_PT-tugão-medium",
+        # "es_MX-claude-high",
+        "it_IT-paola-medium",
+        # "pt_BR-cadu-medium",
+        "pt_BR-faber-medium",
+        # "ro_RO-mihai-medium",
+    ]
+    DEFAULT_EXTRA_MODELS = [
+        MODELS_DIR / "pt_PT-rita.onnx",
+        # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
+    ]
+
     def __init__(
         self,
-        models: List[str],
+        models: Optional[List[str]] = None,
         extra_models_paths: Optional[list[str | Path]] = None,
     ):
-        self.models: List[str] = models
+        self.models: List[str] = models if models is not None else self.DEFAULT_MODELS
         self.MODELS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure models dir exists
+
+        if extra_models_paths is None:
+            extra_models_paths = self.DEFAULT_EXTRA_MODELS
 
         self.voices: List[PiperVoice] = self.ensure_voices_exist_and_download(
             self.models
@@ -55,25 +72,24 @@ class PiperGenerator:
         for extra_model in extra_models_paths:
             print(f"Loading extra model from: {extra_model}")
             voice = PiperVoice.load(
-            model_path=extra_model,
-            config_path=Path(f"{extra_model}.json"),
-            use_cuda=torch.cuda.is_available(),
+                model_path=extra_model,
+                config_path=Path(f"{extra_model}.json"),
+                use_cuda=torch.cuda.is_available(),
             )
-
             self.voices.append(voice)
 
     def download_tugao_voice(self):
         base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/"
         filenames = ["pt_PT-tugão-medium.onnx", "pt_PT-tugão-medium.onnx.json"]
 
-        destination_dir = self.MODELS_DIR  # Use class attribute
+        destination_dir = self.MODELS_DIR
         destination_dir.mkdir(parents=True, exist_ok=True)  # Ensure it exists
 
         for filename in filenames:
             file_path = destination_dir / filename  # Use Path object for joining
             url = base_url + filename
 
-            if not file_path.exists():  # Use Path object's exists method
+            if not file_path.exists():
                 print(f"Downloading from: {url}")
                 response = requests.get(url)
                 response.raise_for_status()
@@ -88,8 +104,7 @@ class PiperGenerator:
         # Download manual do modelo de voz do tugao para ultrapassar problemas de encoding da funcao de download da libraria.
         self.download_tugao_voice()
 
-        download_dir = self.MODELS_DIR  # Use class attribute
-        # download_dir.mkdir(parents=True, exist_ok=True) # Already created in __init__ or download_tugao_voice
+        download_dir = self.MODELS_DIR
 
         voices_info = get_voices(download_dir, update_voices=False)
 
@@ -233,23 +248,6 @@ def main():
 
     args = parser.parse_args()
 
-    # More info about voices in: https://piper.ttstool.com/
-    args.models = [
-        "pt_PT-tugão-medium",
-        # "es_MX-claude-high",
-        # "it_IT-paola-medium",
-        # "pt_BR-cadu-medium",
-        # "pt_BR-faber-medium",
-        # "ro_RO-mihai-medium",
-    ]
-
-    # Use the MODELS_DIR from PiperGenerator for consistency
-    models_base_path = PiperGenerator.MODELS_DIR
-    extra_models = [
-        models_base_path / "pt_PT-rita.onnx",
-        # models_base_path / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
-    ]
-
     # Validate inputs
     if not args.texts:
         parser.error("--texts must be provided")
@@ -260,7 +258,7 @@ def main():
         logger.info(f"Using {len(texts)} provided texts")
 
     # Create generator and generate samples
-    generator = PiperGenerator(args.models, extra_models_paths=extra_models)
+    generator = PiperGenerator()
     generator.generate_samples_piper(
         texts,
         args.num_samples,
