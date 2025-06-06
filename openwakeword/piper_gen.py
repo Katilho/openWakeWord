@@ -37,12 +37,15 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING message
 
 
 class PiperGenerator:
+    MODELS_DIR = Path("models")  # Define models directory as a class attribute
+
     def __init__(
         self,
         models: List[str],
         extra_models_paths: Optional[list[str | Path]] = None,
     ):
         self.models: List[str] = models
+        self.MODELS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure models dir exists
 
         self.voices: List[PiperVoice] = self.ensure_voices_exist_and_download(
             self.models
@@ -52,7 +55,7 @@ class PiperGenerator:
         for extra_model in extra_models_paths:
             voice = PiperVoice.load(
                 model_path=extra_model,
-                config_path=extra_model + ".json",
+                config_path=Path(f"{extra_model}.json"),
                 use_cuda=torch.cuda.is_available(),
             )
 
@@ -62,14 +65,14 @@ class PiperGenerator:
         base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/"
         filenames = ["pt_PT-tugão-medium.onnx", "pt_PT-tugão-medium.onnx.json"]
 
-        destination_dir = "models"
-        Path(destination_dir).mkdir(parents=True, exist_ok=True)
+        destination_dir = self.MODELS_DIR  # Use class attribute
+        destination_dir.mkdir(parents=True, exist_ok=True)  # Ensure it exists
 
         for filename in filenames:
-            file_path = os.path.join(destination_dir, filename)
+            file_path = destination_dir / filename  # Use Path object for joining
             url = base_url + filename
 
-            if not os.path.exists(file_path):
+            if not file_path.exists():  # Use Path object's exists method
                 print(f"Downloading from: {url}")
                 response = requests.get(url)
                 response.raise_for_status()
@@ -84,8 +87,8 @@ class PiperGenerator:
         # Download manual do modelo de voz do tugao para ultrapassar problemas de encoding da funcao de download da libraria.
         self.download_tugao_voice()
 
-        download_dir = Path("models")
-        download_dir.mkdir(parents=True, exist_ok=True)
+        download_dir = self.MODELS_DIR  # Use class attribute
+        # download_dir.mkdir(parents=True, exist_ok=True) # Already created in __init__ or download_tugao_voice
 
         voices_info = get_voices(download_dir, update_voices=False)
 
@@ -239,9 +242,11 @@ def main():
         # "ro_RO-mihai-medium",
     ]
 
+    # Use the MODELS_DIR from PiperGenerator for consistency
+    models_base_path = PiperGenerator.MODELS_DIR
     extra_models = [
-        "models/pt_PT-rita.onnx",
-        # "models/pt_PT-tugão-medium.onnx",
+        models_base_path / "pt_PT-rita.onnx",
+        # models_base_path / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
     ]
 
     # Validate inputs
