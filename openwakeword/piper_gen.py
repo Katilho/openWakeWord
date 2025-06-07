@@ -42,10 +42,11 @@ class PiperGenerator:
     # More info about voices in: https://piper.ttstool.com/
     DEFAULT_MODELS = [
         "pt_PT-tugão-medium",
-        # "es_MX-claude-high",
+        "en_GB-cori-high",
+        "es_MX-claude-high",
         "it_IT-paola-medium",
         # "pt_BR-cadu-medium",
-        "pt_BR-faber-medium",
+        # "pt_BR-faber-medium",
         # "ro_RO-mihai-medium",
     ]
     DEFAULT_EXTRA_MODELS = [
