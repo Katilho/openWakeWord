@@ -244,12 +244,12 @@ class PiperGenerator:
             text = random.choice(texts)
 
             current_length_scale = length_scale or round(
-                random.triangular(0.6, 1.8, 1.0), 3
+                random.triangular(0.9, 1.5, 1.2), 3
             )
             current_noise_scale = noise_scale or round(
-                random.triangular(0.4, 1, 0.667), 3
+                random.triangular(0.5, 0.9, 0.667), 3
             )
-            current_noise_w = noise_w or round(random.triangular(0.5, 1.2, 0.8), 3)
+            current_noise_w = noise_w or round(random.triangular(0.6, 1, 0.8), 3)
 
             random_choices.append(
                 {
@@ -324,7 +324,7 @@ def main():
         help="Text strings to convert to speech (alternative to --text-file)",
     )
     parser.add_argument(
-        "--num-samples", type=int, default=10, help="Number of samples to generate"
+        "--num-samples", type=int, default=1, help="Number of samples to generate"
     )
     parser.add_argument(
         "--output-dir",
@@ -337,20 +337,47 @@ def main():
 
     # Validate inputs
     if not args.texts:
-        parser.error("--texts must be provided")
+        args.texts = ["Clarisse"]
+    texts = args.texts
+    logger.info(f"Using {len(texts)} provided texts")
 
-    # Load texts
-    else:
-        texts = args.texts
-        logger.info(f"Using {len(texts)} provided texts")
+    # More info about voices in: https://piper.ttstool.com/
+    default_models = [
+        # "pt_PT-tugão-medium",
+        # "en_GB-cori-high",
+        # "es_MX-claude-high",
+        # "it_IT-paola-medium",
+        # "pt_BR-cadu-medium",
+        # "pt_BR-faber-medium",
+        # "ro_RO-mihai-medium",
+    ]
+
+    MODELS_DIR = Path("models")  #
+    default_extra_models = [
+        MODELS_DIR / "pt_PT-rita.onnx",
+        # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
+    ]
 
     # Create generator and generate samples
-    generator = PiperGenerator()
+    generator = PiperGenerator(
+        models=default_models, extra_models_paths=default_extra_models
+    )
     generator.generate_samples_piper(
         texts,
         args.num_samples,
         output_dir=args.output_dir,
+        length_scale=1,
+        noise_scale=0.7,
+        noise_w=0.6,
     )
+
+    # current_length_scale = length_scale or round(
+    #     random.triangular(0.7, 1.5, 1.0), 3
+    # )
+    # current_noise_scale = noise_scale or round(
+    #     random.triangular(0.5, 0.9, 0.667), 3
+    # )
+    # current_noise_w = noise_w or round(random.triangular(0.6, 1, 0.8), 3)
 
 
 if __name__ == "__main__":
