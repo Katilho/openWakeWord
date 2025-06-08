@@ -81,6 +81,10 @@ class PiperGenerator:
             )
             self.voices.append(voice)
 
+        print(f"✅ Loaded {len(self.voices)} voice(s)")
+        for i, voice in enumerate(self.voices):
+            print(f"  {i}: {voice.config.espeak_voice}")
+
     def download_tugao_voice(self):
         base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/pt/pt_PT/tugão/medium/"
         filenames = ["pt_PT-tugão-medium.onnx", "pt_PT-tugão-medium.onnx.json"]
