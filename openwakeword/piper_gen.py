@@ -22,16 +22,16 @@ from piper.download import (
 from piper.voice import PiperVoice
 
 # This will reduce most library logs
-logging.basicConfig(level=logging.WARNING)  # or logging.ERROR for even less output
+logging.basicConfig(level=logging.INFO)  # or logging.ERROR for even less output
 
 # Keep your specific logger at INFO level if you want to see your own messages
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Option 2: More granular control - silence specific noisy libraries
-logging.getLogger("torch").setLevel(logging.WARNING)
-logging.getLogger("librosa").setLevel(logging.WARNING)
-logging.getLogger("piper").setLevel(logging.WARNING)
+# logging.getLogger("torch").setLevel(logging.WARNING)
+# logging.getLogger("librosa").setLevel(logging.WARNING)
+# logging.getLogger("piper").setLevel(logging.WARNING)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
 
@@ -42,7 +42,7 @@ class PiperGenerator:
     # More info about voices in: https://piper.ttstool.com/
     DEFAULT_MODELS = [
         "pt_PT-tugão-medium",
-        "en_GB-cori-high",
+        # "en_GB-cori-high",
         "es_MX-claude-high",
         "it_IT-paola-medium",
         # "pt_BR-cadu-medium",
@@ -165,6 +165,7 @@ class PiperGenerator:
         original_sample_rate = 22050
         resample_rate = 16000
 
+        print(f"Generating {max_samples} samples to {output_dir}...")
         # Initialize progress display
         # my_display = display("Starting sample generation...", display_id=True)
 
