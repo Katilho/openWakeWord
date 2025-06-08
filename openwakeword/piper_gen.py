@@ -52,7 +52,7 @@ class PiperGenerator:
         # "ro_RO-mihai-medium",
     ]
     DEFAULT_EXTRA_MODELS = [
-        # MODELS_DIR / "pt_PT-rita.onnx",
+        MODELS_DIR / "pt_PT-rita.onnx",
         # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
     ]
 
