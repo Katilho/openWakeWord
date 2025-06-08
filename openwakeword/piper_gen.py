@@ -1,4 +1,5 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import io
 import logging
 import os
@@ -8,9 +9,9 @@ import wave
 from pathlib import Path
 from typing import List, Optional
 
-import librosa
 import numpy as np
 import requests
+from scipy import signal
 import soundfile as sf
 import torch
 from piper.download import (
@@ -20,6 +21,7 @@ from piper.download import (
     get_voices,
 )
 from piper.voice import PiperVoice
+from tqdm import tqdm
 
 # This will reduce most library logs
 logging.basicConfig(level=logging.INFO)  # or logging.ERROR for even less output
@@ -50,7 +52,7 @@ class PiperGenerator:
         # "ro_RO-mihai-medium",
     ]
     DEFAULT_EXTRA_MODELS = [
-        MODELS_DIR / "pt_PT-rita.onnx",
+        # MODELS_DIR / "pt_PT-rita.onnx",
         # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
     ]
 
@@ -136,19 +138,74 @@ class PiperGenerator:
 
         return loaded_voices
 
-    def _resample_audio(
+    def _resample_audio_fast(
         self, audio_data: np.ndarray, original_samplerate: int, target_samplerate: int
     ) -> np.ndarray:
         """
-        Resamples audio data to the target sample rate.
+        Fast resampling using scipy.signal.resample for better performance.
         """
         if audio_data.ndim > 1 and audio_data.shape[1] == 1:
             audio_data = audio_data[:, 0]  # Convert to mono if needed
 
-        resampled_audio = librosa.resample(
-            y=audio_data, orig_sr=original_samplerate, target_sr=target_samplerate
-        )
-        return resampled_audio
+        # Calculate the number of samples needed for target sample rate
+        target_length = int(len(audio_data) * target_samplerate / original_samplerate)
+
+        # Use scipy's faster resampling
+        resampled_audio = signal.resample(audio_data, target_length)
+        return resampled_audio.astype(np.float32)
+
+    def _generate_single_sample(
+        self,
+        voice_idx: int,
+        text: str,
+        length_scale: float,
+        noise_scale: float,
+        noise_w: float,
+        sample_id: int,
+        output_dir: str,
+        original_sample_rate: int,
+        resample_rate: int,
+    ) -> tuple[bool, str]:
+        """Generate a single audio sample (for parallel processing)."""
+        try:
+            voice = self.voices[voice_idx]
+
+            synthesize_args = {
+                "length_scale": length_scale,
+                "noise_scale": noise_scale,
+                "noise_w": noise_w,
+            }
+
+            # Generate audio to memory buffer
+            audio_buffer = io.BytesIO()
+            with wave.open(audio_buffer, "wb") as wav_file:
+                voice.synthesize(text, wav_file, **synthesize_args)
+
+            # Read the generated audio
+            audio_buffer.seek(0)
+            audio_data, sample_rate = sf.read(audio_buffer, dtype="float32")
+
+            # Fast resampling
+            resampled_audio = self._resample_audio_fast(
+                audio_data, original_sample_rate, resample_rate
+            )
+
+            # Save resampled audio to file
+            safe_text = (
+                "".join(c if c.isalnum() or c in (" ", "_") else "" for c in text[:30])
+                .rstrip()
+                .replace(" ", "_")
+            )
+            wav_path = (
+                Path(output_dir)
+                / f"{str(voice.config.espeak_voice)}_{safe_text}_{sample_id}_{time.monotonic_ns()}.wav"
+            )
+
+            sf.write(str(wav_path), resampled_audio, resample_rate, subtype="PCM_16")
+            return True, f"Saved audio to {wav_path}"
+
+        except Exception as e:
+            return False, f"Error generating sample {sample_id}: {str(e)}"
 
     def generate_samples_piper(
         self,
@@ -158,76 +215,100 @@ class PiperGenerator:
         length_scale: Optional[float] = None,
         noise_scale: Optional[float] = None,
         noise_w: Optional[float] = None,
+        max_workers: Optional[int] = None,
+        use_fast_resampling: bool = True,
     ):
+        """
+        Optimized version of sample generation with parallel processing.
+
+        Args:
+            max_workers: Number of parallel workers. If None, uses min(4, number of voices)
+            use_fast_resampling: Whether to use scipy.signal.resample (faster) or librosa (higher quality)
+        """
         # Create output directory if it doesn't exist
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
         original_sample_rate = 22050
         resample_rate = 16000
 
-        print(f"Generating {max_samples} samples to {output_dir}...")
-        # Initialize progress display
-        # my_display = display("Starting sample generation...", display_id=True)
+        # Pre-generate all random choices for better performance
+        logger.info("Pre-generating random parameters...")
+        random_choices = []
 
-        # for i in tqdm(range(max_samples)):
         for i in range(max_samples):
-            voice = random.choice(self.voices)
+            voice_idx = random.randint(0, len(self.voices) - 1)
             text = random.choice(texts)
 
-            # # Update progress display
-            # update_display(
-            #     f"Sample {i + 1}/{max_samples} for text: {text}",
-            #     display_id=my_display.display_id,
-            # )
-
-            # Controls the duration of the generated speech (larger = slower/longer)
             current_length_scale = length_scale or round(
                 random.triangular(0.6, 1.8, 1.0), 3
             )
-
-            # Controls the amount of randomness/noise in generation (affects prosody)
             current_noise_scale = noise_scale or round(
                 random.triangular(0.4, 1, 0.667), 3
             )
-
-            # Controls pitch/energy variation (often for expressive TTS)
             current_noise_w = noise_w or round(random.triangular(0.5, 1.2, 0.8), 3)
 
-            # logger.info(f"Generating sample {i + 1}/{max_samples} for text: {text}")
-            synthesize_args = {
-                "length_scale": current_length_scale,
-                "noise_scale": current_noise_scale,
-                "noise_w": current_noise_w,
-            }
-
-            # Generate audio to memory buffer first
-            audio_buffer = io.BytesIO()
-            with wave.open(audio_buffer, "wb") as wav_file:
-                voice.synthesize(text, wav_file, **synthesize_args)
-
-            # Read the generated audio
-            audio_buffer.seek(0)
-            audio_data, sample_rate = sf.read(audio_buffer, dtype="float32")
-
-            # Resample the audio
-            resampled_audio = self._resample_audio(
-                audio_data, original_sample_rate, resample_rate
+            random_choices.append(
+                {
+                    "voice_idx": voice_idx,
+                    "text": text,
+                    "length_scale": current_length_scale,
+                    "noise_scale": current_noise_scale,
+                    "noise_w": current_noise_w,
+                    "sample_id": i,
+                }
             )
 
-            # Save resampled audio to file
-            # Sanitize text for filename
-            safe_text = (
-                "".join(c if c.isalnum() or c in (" ", "_") else "" for c in text[:30])
-                .rstrip()
-                .replace(" ", "_")
-            )
-            wav_path = (
-                Path(output_dir)
-                / f"{str(voice.config.espeak_voice)}_{safe_text}_{time.monotonic_ns()}.wav"
-            )
+        # Determine number of workers
+        if max_workers is None:
+            max_workers = min(4, len(self.voices), max_samples)
 
-            sf.write(str(wav_path), resampled_audio, resample_rate, subtype="PCM_16")
-            # logger.info(f"Saved resampled audio ({resample_rate}Hz) to {wav_path}")
+        logger.info(
+            f"Starting generation of {max_samples} samples using {max_workers} workers..."
+        )
+
+        # Use ThreadPoolExecutor for parallel processing
+        successful_generations = 0
+        failed_generations = 0
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_sample = {}
+            for choice in random_choices:
+                future = executor.submit(
+                    self._generate_single_sample,
+                    choice["voice_idx"],
+                    choice["text"],
+                    choice["length_scale"],
+                    choice["noise_scale"],
+                    choice["noise_w"],
+                    choice["sample_id"],
+                    output_dir,
+                    original_sample_rate,
+                    resample_rate,
+                )
+                future_to_sample[future] = choice["sample_id"]
+
+            # Process completed tasks with progress bar
+            with tqdm(total=max_samples, desc="Generating samples") as pbar:
+                for future in as_completed(future_to_sample):
+                    sample_id = future_to_sample[future]
+                    try:
+                        success, message = future.result()
+                        if success:
+                            successful_generations += 1
+                            logger.debug(message)
+                        else:
+                            failed_generations += 1
+                            logger.error(message)
+                    except Exception as e:
+                        failed_generations += 1
+                        logger.error(f"Sample {sample_id} failed with exception: {e}")
+
+                    pbar.update(1)
+
+        logger.info(
+            f"Generation complete! Successful: {successful_generations}, Failed: {failed_generations}"
+        )
 
 
 def main():
