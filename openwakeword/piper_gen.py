@@ -30,10 +30,6 @@ logging.basicConfig(level=logging.INFO)  # or logging.ERROR for even less output
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Option 2: More granular control - silence specific noisy libraries
-# logging.getLogger("torch").setLevel(logging.WARNING)
-# logging.getLogger("librosa").setLevel(logging.WARNING)
-# logging.getLogger("piper").setLevel(logging.WARNING)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
 
@@ -50,36 +46,19 @@ class PiperGenerator:
         # "pt_BR-cadu-medium",
         # "pt_BR-faber-medium",
         # "ro_RO-mihai-medium",
-    ]
-    DEFAULT_EXTRA_MODELS = [
-        MODELS_DIR / "pt_PT-rita.onnx",
-        # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
+        "pt_PT-rita",  # Add any local models here
     ]
 
     def __init__(
         self,
         models: Optional[List[str]] = None,
-        extra_models_paths: Optional[list[str | Path]] = None,
     ):
         self.models: List[str] = models if models is not None else self.DEFAULT_MODELS
         self.MODELS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure models dir exists
 
-        if extra_models_paths is None:
-            extra_models_paths = self.DEFAULT_EXTRA_MODELS
-
         self.voices: List[PiperVoice] = self.ensure_voices_exist_and_download(
             self.models
         )
-
-        # Carregar mais vozes extra a partir dos próprios modelos.
-        for extra_model in extra_models_paths:
-            print(f"Loading extra model from: {extra_model}")
-            voice = PiperVoice.load(
-                model_path=extra_model,
-                config_path=Path(f"{extra_model}.json"),
-                use_cuda=torch.cuda.is_available(),
-            )
-            self.voices.append(voice)
 
         print(f"✅ Loaded {len(self.voices)} voice(s)")
         for i, voice in enumerate(self.voices):
@@ -136,7 +115,27 @@ class PiperGenerator:
                 loaded_voices.append(voice)
 
             except VoiceNotFoundError:
-                print(f"✗ Voice '{model_name}' not found in voices.json.")
+                print(
+                    f"✗ Voice '{model_name}' not found in voices.json. Checking local models..."
+                )
+                # Check for local model files
+                local_model_path = self.MODELS_DIR / f"{model_name}.onnx"
+                local_config_path = self.MODELS_DIR / f"{model_name}.onnx.json"
+
+                if local_model_path.exists() and local_config_path.exists():
+                    print(f"✓ Found local model: {local_model_path}")
+                    try:
+                        voice = PiperVoice.load(
+                            model_path=local_model_path,
+                            config_path=local_config_path,
+                            use_cuda=torch.cuda.is_available(),
+                        )
+                        loaded_voices.append(voice)
+                        print(f"✓ Successfully loaded local model '{model_name}'")
+                    except Exception as e:
+                        print(f"⚠️ Error loading local model '{model_name}': {e}")
+                else:
+                    print(f"✗ Local model files not found for '{model_name}'")
             except Exception as e:
                 print(f"⚠️ Error with voice '{model_name}': {e}")
 
@@ -324,7 +323,7 @@ def main():
         help="Text strings to convert to speech (alternative to --text-file)",
     )
     parser.add_argument(
-        "--num-samples", type=int, default=1, help="Number of samples to generate"
+        "--samples", type=int, default=1, help="Number of samples to generate"
     )
     parser.add_argument(
         "--output-dir",
@@ -337,7 +336,7 @@ def main():
 
     # Validate inputs
     if not args.texts:
-        args.texts = ["Clarisse"]
+        args.texts = ["Hey Clãriss"]
     texts = args.texts
     logger.info(f"Using {len(texts)} provided texts")
 
@@ -347,24 +346,17 @@ def main():
         # "en_GB-cori-high",
         # "es_MX-claude-high",
         # "it_IT-paola-medium",
-        # "pt_BR-cadu-medium",
-        # "pt_BR-faber-medium",
+        "pt_BR-cadu-medium",
+        "pt_BR-faber-medium",
         # "ro_RO-mihai-medium",
-    ]
-
-    MODELS_DIR = Path("models")  #
-    default_extra_models = [
-        MODELS_DIR / "pt_PT-rita.onnx",
-        # MODELS_DIR / "pt_PT-tugão-medium.onnx", # This is downloaded by ensure_voices_exist_and_download
+        "pt_PT-rita",  # Local model example
     ]
 
     # Create generator and generate samples
-    generator = PiperGenerator(
-        models=default_models, extra_models_paths=default_extra_models
-    )
+    generator = PiperGenerator(models=default_models)
     generator.generate_samples_piper(
         texts,
-        args.num_samples,
+        args.samples,
         output_dir=args.output_dir,
         length_scale=1,
         noise_scale=0.7,

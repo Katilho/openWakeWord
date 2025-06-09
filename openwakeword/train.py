@@ -865,9 +865,10 @@ if __name__ == "__main__":
         )
 
     if args.generate_clips is True:
+        models = config.get("tts_models", None)
 
         # Initialize PiperGenerator
-        piper_generator = PiperGenerator()
+        piper_generator = PiperGenerator(models=models)
 
         # Generate positive clips for training
         logging.info("#" * 50 + "\nGenerating positive clips for training\n" + "#" * 50)
