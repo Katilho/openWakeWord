@@ -820,6 +820,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = yaml.load(open(args.training_config, "r").read(), yaml.Loader)
 
+    # Setup our personal PiperGenerator
+    from piper_gen import PiperGenerator
+
     # imports Piper for synthetic sample generation
     sys.path.insert(0, os.path.abspath(config["piper_sample_generator_path"]))
     from generate_samples import generate_samples
@@ -862,25 +865,36 @@ if __name__ == "__main__":
         )
 
     if args.generate_clips is True:
+        models = config.get("tts_models", None)
+
+        # Initialize PiperGenerator
+        piper_generator = PiperGenerator(models=models)
+
         # Generate positive clips for training
         logging.info("#" * 50 + "\nGenerating positive clips for training\n" + "#" * 50)
         if not os.path.exists(positive_train_output_dir):
             os.mkdir(positive_train_output_dir)
         n_current_samples = len(os.listdir(positive_train_output_dir))
         if n_current_samples <= 0.95 * config["n_samples"]:
-            generate_samples(
-                text=config["target_phrase"],
+            # generate_samples(
+            #     text=config["target_phrase"],
+            #     max_samples=config["n_samples"] - n_current_samples,
+            #     batch_size=config["tts_batch_size"],
+            #     noise_scales=[0.98],
+            #     noise_scale_ws=[0.98],
+            #     length_scales=[0.75, 1.0, 1.25],
+            #     output_dir=positive_train_output_dir,
+            #     auto_reduce_batch_size=True,
+            #     file_names=[
+            #         uuid.uuid4().hex + ".wav" for i in range(config["n_samples"])
+            #     ],
+            # )
+            piper_generator.generate_samples_piper(
+                texts=config["target_phrase"],
                 max_samples=config["n_samples"] - n_current_samples,
-                batch_size=config["tts_batch_size"],
-                noise_scales=[0.98],
-                noise_scale_ws=[0.98],
-                length_scales=[0.75, 1.0, 1.25],
                 output_dir=positive_train_output_dir,
-                auto_reduce_batch_size=True,
-                file_names=[
-                    uuid.uuid4().hex + ".wav" for i in range(config["n_samples"])
-                ],
             )
+
             torch.cuda.empty_cache()
         else:
             logging.warning(
@@ -893,15 +907,20 @@ if __name__ == "__main__":
             os.mkdir(positive_test_output_dir)
         n_current_samples = len(os.listdir(positive_test_output_dir))
         if n_current_samples <= 0.95 * config["n_samples_val"]:
-            generate_samples(
-                text=config["target_phrase"],
+            # generate_samples(
+            #     text=config["target_phrase"],
+            #     max_samples=config["n_samples_val"] - n_current_samples,
+            #     batch_size=config["tts_batch_size"],
+            #     noise_scales=[1.0],
+            #     noise_scale_ws=[1.0],
+            #     length_scales=[0.75, 1.0, 1.25],
+            #     output_dir=positive_test_output_dir,
+            #     auto_reduce_batch_size=True,
+            # )
+            piper_generator.generate_samples_piper(
+                texts=config["target_phrase"],
                 max_samples=config["n_samples_val"] - n_current_samples,
-                batch_size=config["tts_batch_size"],
-                noise_scales=[1.0],
-                noise_scale_ws=[1.0],
-                length_scales=[0.75, 1.0, 1.25],
                 output_dir=positive_test_output_dir,
-                auto_reduce_batch_size=True,
             )
             torch.cuda.empty_cache()
         else:
@@ -1231,8 +1250,9 @@ if __name__ == "__main__":
             output_dir=config["output_dir"],
         )
 
+        #! This doesn't work right (broken in python 3.11, default in Colab as of January 2025) there is a shell command to do this in the notebook
         # Convert the model from onnx to tflite format
-        convert_onnx_to_tflite(
-            os.path.join(config["output_dir"], config["model_name"] + ".onnx"),
-            os.path.join(config["output_dir"], config["model_name"] + ".tflite"),
-        )
+        # convert_onnx_to_tflite(
+        #     os.path.join(config["output_dir"], config["model_name"] + ".onnx"),
+        #     os.path.join(config["output_dir"], config["model_name"] + ".tflite"),
+        # )
