@@ -23,6 +23,11 @@ from piper.download import (
 from piper.voice import PiperVoice
 from tqdm import tqdm
 
+import onnxruntime as ort
+
+# Not sure if this helps, but in some tests it could only use the GPU if I had run this line before..
+print(ort.get_available_providers())
+
 # This will reduce most library logs
 logging.basicConfig(level=logging.INFO)  # or logging.ERROR for even less output
 
