@@ -23,6 +23,7 @@ from piper.download import (
 from piper.voice import PiperVoice
 from tqdm import tqdm
 
+# The order of this being after torch i also think it's important.
 import onnxruntime as ort
 
 # Not sure if this helps, but in some tests it could only use the GPU if I had run this line before..
@@ -37,6 +38,9 @@ logger.setLevel(logging.INFO)
 
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
+# os.environ["ORT_LOG_LEVEL"] = "ERROR"  # Suppress ONNX Runtime messages
+os.environ["ORT_LOG_LEVEL"] = "FATAL"  # Suppress ONNX Runtime messages
+
 
 
 class PiperGenerator:
