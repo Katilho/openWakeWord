@@ -834,18 +834,31 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(config["output_dir"], config["model_name"])):
         os.mkdir(os.path.join(config["output_dir"], config["model_name"]))
 
+    # By removing the config["model_name"] from the output directory, we can reuse the data generated from other models and still create new models with different names without overwritting them. This is only problematic if the target_phrase changes and the output_dir doesn't.
     positive_train_output_dir = os.path.join(
-        config["output_dir"], config["model_name"], "positive_train"
+        config["output_dir"], "positive_train"
     )
     positive_test_output_dir = os.path.join(
-        config["output_dir"], config["model_name"], "positive_test"
+        config["output_dir"], "positive_test"
     )
     negative_train_output_dir = os.path.join(
-        config["output_dir"], config["model_name"], "negative_train"
+        config["output_dir"], "negative_train"
     )
     negative_test_output_dir = os.path.join(
-        config["output_dir"], config["model_name"], "negative_test"
+        config["output_dir"], "negative_test"
     )
+    # positive_train_output_dir = os.path.join(
+    #     config["output_dir"], config["model_name"], "positive_train"
+    # )
+    # positive_test_output_dir = os.path.join(
+    #     config["output_dir"], config["model_name"], "positive_test"
+    # )
+    # negative_train_output_dir = os.path.join(
+    #     config["output_dir"], config["model_name"], "negative_train"
+    # )
+    # negative_test_output_dir = os.path.join(
+    #     config["output_dir"], config["model_name"], "negative_test"
+    # )
     feature_save_dir = os.path.join(config["output_dir"], config["model_name"])
 
     # Get paths for impulse response and background audio files
