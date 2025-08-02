@@ -1,5 +1,5 @@
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 import io
 import logging
 import os
@@ -228,14 +228,12 @@ class PiperGenerator:
         length_scale: Optional[float] = None,
         noise_scale: Optional[float] = None,
         noise_w: Optional[float] = None,
-        max_workers: Optional[int] = None,
         use_fast_resampling: bool = True,
     ):
         """
-        Optimized version of sample generation with parallel processing.
+        Optimized version of sample generation with GPU acceleration.
 
         Args:
-            max_workers: Number of parallel workers. If None, uses min(4, number of voices)
             use_fast_resampling: Whether to use scipy.signal.resample (faster) or librosa (higher quality)
         """
         # Create output directory if it doesn't exist
@@ -271,53 +269,37 @@ class PiperGenerator:
                 }
             )
 
-        # Determine number of workers
-        if max_workers is None:
-            max_workers = min(4, len(self.voices), max_samples)
+        logger.info(f"Starting generation of {max_samples} samples using GPU...")
 
-        logger.info(
-            f"Starting generation of {max_samples} samples using {max_workers} workers..."
-        )
-
-        # Use ThreadPoolExecutor for parallel processing
+        # Sequential processing with GPU acceleration
         successful_generations = 0
         failed_generations = 0
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            future_to_sample = {}
+        # Process samples sequentially with progress bar
+        with tqdm(total=max_samples, desc="Generating samples") as pbar:
             for choice in random_choices:
-                future = executor.submit(
-                    self._generate_single_sample,
-                    choice["voice_idx"],
-                    choice["text"],
-                    choice["length_scale"],
-                    choice["noise_scale"],
-                    choice["noise_w"],
-                    choice["sample_id"],
-                    output_dir,
-                    original_sample_rate,
-                    resample_rate,
-                )
-                future_to_sample[future] = choice["sample_id"]
-
-            # Process completed tasks with progress bar
-            with tqdm(total=max_samples, desc="Generating samples") as pbar:
-                for future in as_completed(future_to_sample):
-                    sample_id = future_to_sample[future]
-                    try:
-                        success, message = future.result()
-                        if success:
-                            successful_generations += 1
-                            logger.debug(message)
-                        else:
-                            failed_generations += 1
-                            # logger.error(message)
-                    except Exception as e:
+                try:
+                    success, message = self._generate_single_sample(
+                        choice["voice_idx"],
+                        choice["text"],
+                        choice["length_scale"],
+                        choice["noise_scale"],
+                        choice["noise_w"],
+                        choice["sample_id"],
+                        output_dir,
+                        original_sample_rate,
+                        resample_rate,
+                    )
+                    if success:
+                        successful_generations += 1
+                        logger.debug(message)
+                    else:
                         failed_generations += 1
-                        logger.error(f"Sample {sample_id} failed with exception: {e}")
+                except Exception as e:
+                    failed_generations += 1
+                    logger.error(f"Sample {choice['sample_id']} failed with exception: {e}")
 
-                    pbar.update(1)
+                pbar.update(1)
 
         logger.info(
             f"Generation complete! Successful: {successful_generations}, Failed: {failed_generations}"
