@@ -312,7 +312,7 @@ class PiperGenerator:
                             logger.debug(message)
                         else:
                             failed_generations += 1
-                            logger.error(message)
+                            # logger.error(message)
                     except Exception as e:
                         failed_generations += 1
                         logger.error(f"Sample {sample_id} failed with exception: {e}")
