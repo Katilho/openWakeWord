@@ -40,7 +40,8 @@ logger.setLevel(logging.INFO)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
 # os.environ["ORT_LOG_LEVEL"] = "ERROR"  # Suppress ONNX Runtime messages
 os.environ["ORT_LOG_LEVEL"] = "FATAL"  # Suppress ONNX Runtime messages
-
+# Set log severity to ERROR (3): only Error‑level and Fatal‑level logs remain
+ort.set_default_logger_severity(4)
 
 
 class PiperGenerator:
