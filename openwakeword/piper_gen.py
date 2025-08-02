@@ -1,5 +1,4 @@
 import argparse
-from concurrent.futures import as_completed
 import io
 import logging
 import os
@@ -26,6 +25,12 @@ from tqdm import tqdm
 # The order of this being after torch i also think it's important.
 import onnxruntime as ort
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
+# os.environ["ORT_LOG_LEVEL"] = "ERROR"  # Suppress ONNX Runtime messages
+os.environ["ORT_LOG_LEVEL"] = "FATAL"  # Suppress ONNX Runtime messages
+# Set log severity to ERROR (3): only Error‑level and Fatal‑level logs remain
+ort.set_default_logger_severity(4)
+
 # Not sure if this helps, but in some tests it could only use the GPU if I had run this line before..
 print(ort.get_available_providers())
 
@@ -35,13 +40,6 @@ logging.basicConfig(level=logging.INFO)  # or logging.ERROR for even less output
 # Keep your specific logger at INFO level if you want to see your own messages
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress TF INFO and WARNING messages
-# os.environ["ORT_LOG_LEVEL"] = "ERROR"  # Suppress ONNX Runtime messages
-os.environ["ORT_LOG_LEVEL"] = "FATAL"  # Suppress ONNX Runtime messages
-# Set log severity to ERROR (3): only Error‑level and Fatal‑level logs remain
-ort.set_default_logger_severity(4)
 
 
 class PiperGenerator:
@@ -297,7 +295,9 @@ class PiperGenerator:
                         failed_generations += 1
                 except Exception as e:
                     failed_generations += 1
-                    logger.error(f"Sample {choice['sample_id']} failed with exception: {e}")
+                    logger.error(
+                        f"Sample {choice['sample_id']} failed with exception: {e}"
+                    )
 
                 pbar.update(1)
 
